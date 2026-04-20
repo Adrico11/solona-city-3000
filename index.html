@@ -252,6 +252,176 @@
       filter: none !important;
     }
 
+    /* ─── Modal overlay ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(5, 13, 26, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-card {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: var(--navy-panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow:
+        0 0 0 1px rgba(59,130,246,0.1),
+        0 30px 80px rgba(0,0,0,0.7),
+        0 0 60px rgba(59,130,246,0.07) inset;
+      transform: translateY(24px) scale(0.97);
+      transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .modal-overlay.active .modal-card {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--navy-mid);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .modal-close:hover { background: var(--accent-soft); color: var(--text-primary); }
+
+    /* ─── Modal header ─── */
+    .modal-header {
+      padding: 2rem 2rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-city-icon { font-size: 2.4rem; line-height: 1; }
+    .modal-city-name {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, #93c5fd, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ─── Loading spinner ─── */
+    .modal-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Error ─── */
+    .modal-error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+    .modal-error-icon { font-size: 2rem; }
+
+    /* ─── Modal sections ─── */
+    .modal-sections { padding: 1.5rem 2rem 2rem; display: flex; flex-direction: column; gap: 1rem; }
+
+    .modal-section {
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+    }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.8rem;
+    }
+
+    /* ─── Weather section ─── */
+    .weather-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      margin-bottom: 0.4rem;
+    }
+    .weather-emoji { font-size: 2rem; line-height: 1; }
+    .weather-temp {
+      font-size: 2.6rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+    .weather-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .weather-sep { opacity: 0.4; }
+
+    /* ─── Placeholder sections ─── */
+    .placeholder-body {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      font-style: italic;
+      padding: 0.6rem 0;
+      border: 1px dashed rgba(100,116,139,0.3);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .hidden { display: none !important; }
+
     /* ─── Leaflet dark tiles tweak ─── */
     .leaflet-tile-pane { }
     .leaflet-control-attribution { background: rgba(5,13,26,0.8) !important; color: #475569 !important; }
@@ -280,6 +450,60 @@
       <span class="btn-hint">Pick your destiny at random</span>
     </div>
 
+  </div>
+
+  <!-- Modal -->
+  <div id="modalOverlay" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+
+      <div class="modal-header">
+        <div class="modal-city-icon">🏙️</div>
+        <h2 class="modal-city-name" id="modalCityName">City</h2>
+      </div>
+
+      <div class="modal-loading" id="modalLoading">
+        <div class="spinner"></div>
+        <span>Fetching city data…</span>
+      </div>
+
+      <div class="modal-error hidden" id="modalError">
+        <span class="modal-error-icon">⚠️</span>
+        <p>Couldn't load weather data.<br>Check your connection and try again.</p>
+      </div>
+
+      <div class="modal-sections hidden" id="modalSections">
+
+        <div class="modal-section">
+          <div class="section-label">Current Weather</div>
+          <div class="weather-row">
+            <span class="weather-emoji" id="weatherEmoji">☀️</span>
+            <span class="weather-temp" id="weatherTemp">--°C</span>
+          </div>
+          <div class="weather-meta">
+            <span id="weatherCondition">--</span>
+            <span class="weather-sep">·</span>
+            <span>💨 <span id="weatherWind">--</span> km/h</span>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="section-label">🏛️ Top Attraction</div>
+          <div class="placeholder-body">Coming soon…</div>
+        </div>
+
+        <div class="modal-section">
+          <div class="section-label">💡 Fun Fact</div>
+          <div class="placeholder-body">Coming soon…</div>
+        </div>
+
+        <div class="modal-section">
+          <div class="section-label">💬 Slack Message</div>
+          <div class="placeholder-body">Coming soon…</div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <!-- Leaflet JS (local) -->
@@ -502,6 +726,80 @@
       requestAnimationFrame(step);
     }
 
+    // ── WMO weather code map ───────────────────────────────────────────────
+    const WMO = {
+      0:  { label: 'Clear sky',             emoji: '☀️'  },
+      1:  { label: 'Mainly clear',          emoji: '🌤️'  },
+      2:  { label: 'Partly cloudy',         emoji: '⛅'  },
+      3:  { label: 'Overcast',              emoji: '☁️'  },
+      45: { label: 'Foggy',                 emoji: '🌫️'  },
+      48: { label: 'Icy fog',               emoji: '🌫️'  },
+      51: { label: 'Light drizzle',         emoji: '🌦️'  },
+      53: { label: 'Moderate drizzle',      emoji: '🌦️'  },
+      55: { label: 'Dense drizzle',         emoji: '🌧️'  },
+      61: { label: 'Slight rain',           emoji: '🌧️'  },
+      63: { label: 'Moderate rain',         emoji: '🌧️'  },
+      65: { label: 'Heavy rain',            emoji: '🌧️'  },
+      71: { label: 'Slight snow',           emoji: '🌨️'  },
+      73: { label: 'Moderate snow',         emoji: '❄️'  },
+      75: { label: 'Heavy snow',            emoji: '❄️'  },
+      77: { label: 'Snow grains',           emoji: '🌨️'  },
+      80: { label: 'Slight showers',        emoji: '🌦️'  },
+      81: { label: 'Moderate showers',      emoji: '🌧️'  },
+      82: { label: 'Violent showers',       emoji: '⛈️'  },
+      85: { label: 'Slight snow showers',   emoji: '🌨️'  },
+      86: { label: 'Heavy snow showers',    emoji: '❄️'  },
+      95: { label: 'Thunderstorm',          emoji: '⛈️'  },
+      96: { label: 'Thunderstorm w/ hail',  emoji: '⛈️'  },
+      99: { label: 'Thunderstorm w/ hail',  emoji: '⛈️'  },
+    };
+
+    // ── Modal ──────────────────────────────────────────────────────────────
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalClose   = document.getElementById('modalClose');
+
+    function openModal(city) {
+      document.getElementById('modalCityName').textContent = city.name;
+      document.getElementById('modalLoading').classList.remove('hidden');
+      document.getElementById('modalError').classList.add('hidden');
+      document.getElementById('modalSections').classList.add('hidden');
+      modalOverlay.classList.add('active');
+      modalOverlay.setAttribute('aria-hidden', 'false');
+      fetchWeather(city);
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('active');
+      modalOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    async function fetchWeather(city) {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lng}&current=temperature_2m,weather_code,wind_speed_10m&temperature_unit=celsius`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        const cur  = data.current;
+        const wmo  = WMO[cur.weather_code] ?? { label: 'Unknown', emoji: '🌡️' };
+
+        document.getElementById('weatherEmoji').textContent     = wmo.emoji;
+        document.getElementById('weatherTemp').textContent      = `${Math.round(cur.temperature_2m)}°C`;
+        document.getElementById('weatherCondition').textContent = wmo.label;
+        document.getElementById('weatherWind').textContent      = Math.round(cur.wind_speed_10m);
+
+        document.getElementById('modalLoading').classList.add('hidden');
+        document.getElementById('modalSections').classList.remove('hidden');
+      } catch {
+        document.getElementById('modalLoading').classList.add('hidden');
+        document.getElementById('modalError').classList.remove('hidden');
+      }
+    }
+
+    modalClose.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    // ── End modal ──────────────────────────────────────────────────────────
+
     dartBtn.addEventListener('click', async () => {
       dartBtn.disabled = true;
 
@@ -526,6 +824,7 @@
         currentMarker = L.marker([city.lat, city.lng], { icon: pulseIcon }).addTo(map);
         playFanfare();
         dartBtn.disabled = false;
+        openModal(city);
       });
     });
   </script>
