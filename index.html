@@ -345,8 +345,7 @@
       flyDart(fromX, fromY, toX, toY, () => {
         if (currentMarker) { currentMarker.remove(); }
         currentMarker = L.marker([city.lat, city.lng], { icon: pulseIcon }).addTo(map);
-        map.flyTo([city.lat, city.lng], 12, { duration: 1.4 });
-        map.once('moveend', () => { dartBtn.disabled = false; });
+        dartBtn.disabled = false;
       });
     });
   </script>
