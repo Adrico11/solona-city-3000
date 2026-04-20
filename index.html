@@ -334,41 +334,59 @@
       background-clip: text;
     }
 
-    /* ─── Loading spinner ─── */
-    .modal-loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      padding: 3rem 2rem;
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ─── Error ─── */
-    .modal-error {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 3rem 2rem;
-      color: var(--text-muted);
-      text-align: center;
-      line-height: 1.6;
-    }
-    .modal-error-icon { font-size: 2rem; }
-
     /* ─── Modal sections ─── */
     .modal-sections { padding: 1.5rem 2rem 2rem; display: flex; flex-direction: column; gap: 1rem; }
+
+    /* ─── Skeleton shimmer ─── */
+    .skeleton-line {
+      height: 13px;
+      border-radius: 6px;
+      background: linear-gradient(90deg,
+        var(--navy-deep) 25%,
+        rgba(59,130,246,0.12) 50%,
+        var(--navy-deep) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease infinite;
+      margin-bottom: 8px;
+    }
+    .skeleton-line:last-child { margin-bottom: 0; }
+    .skeleton-line.w-60 { width: 60%; }
+    .skeleton-line.w-40 { width: 40%; }
+    .skeleton-temp {
+      height: 44px;
+      width: 130px;
+      border-radius: 8px;
+      background: linear-gradient(90deg,
+        var(--navy-deep) 25%,
+        rgba(59,130,246,0.12) 50%,
+        var(--navy-deep) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ─── Per-card states ─── */
+    .section-content { color: var(--text-primary); font-size: 0.92rem; line-height: 1.65; }
+    .section-error   { color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .retry-btn {
+      align-self: flex-start;
+      padding: 0.35rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: transparent;
+      color: var(--accent-glow);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .retry-btn:hover { background: var(--accent-soft); }
 
     .modal-section {
       background: var(--navy-mid);
@@ -462,41 +480,58 @@
         <h2 class="modal-city-name" id="modalCityName">City</h2>
       </div>
 
-      <div class="modal-loading" id="modalLoading">
-        <div class="spinner"></div>
-        <span>Fetching city data…</span>
-      </div>
+      <div class="modal-sections" id="modalSections">
 
-      <div class="modal-error hidden" id="modalError">
-        <span class="modal-error-icon">⚠️</span>
-        <p>Couldn't load weather data.<br>Check your connection and try again.</p>
-      </div>
-
-      <div class="modal-sections hidden" id="modalSections">
-
+        <!-- Weather -->
         <div class="modal-section">
           <div class="section-label">Current Weather</div>
-          <div class="weather-row">
-            <span class="weather-emoji" id="weatherEmoji">☀️</span>
-            <span class="weather-temp" id="weatherTemp">--°C</span>
+          <div id="weatherSkeleton">
+            <div class="skeleton-temp"></div>
+            <div class="skeleton-line w-60"></div>
           </div>
-          <div class="weather-meta">
-            <span id="weatherCondition">--</span>
-            <span class="weather-sep">·</span>
-            <span>💨 <span id="weatherWind">--</span> km/h</span>
+          <div id="weatherContent" class="hidden">
+            <div class="weather-row">
+              <span class="weather-emoji" id="weatherEmoji">☀️</span>
+              <span class="weather-temp" id="weatherTemp">--°C</span>
+            </div>
+            <div class="weather-meta">
+              <span id="weatherCondition">--</span>
+              <span class="weather-sep">·</span>
+              <span>💨 <span id="weatherWind">--</span> km/h</span>
+            </div>
           </div>
+          <div id="weatherErr" class="section-error hidden">⚠️ Couldn't load weather data.</div>
         </div>
 
+        <!-- Top Attraction -->
         <div class="modal-section">
           <div class="section-label">🏛️ Top Attraction</div>
-          <div class="placeholder-body">Coming soon…</div>
+          <div id="attractionSkeleton">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line w-60"></div>
+          </div>
+          <div id="attractionContent" class="section-content hidden"></div>
+          <div id="attractionErr" class="section-error hidden">
+            <span>⚠️ Couldn't load attraction info.</span>
+            <button class="retry-btn" id="attractionRetry">↺ Retry</button>
+          </div>
         </div>
 
+        <!-- Fun Fact -->
         <div class="modal-section">
           <div class="section-label">💡 Fun Fact</div>
-          <div class="placeholder-body">Coming soon…</div>
+          <div id="funFactSkeleton">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+          <div id="funFactContent" class="section-content hidden"></div>
+          <div id="funFactErr" class="section-error hidden">
+            <span>⚠️ Couldn't load fun fact.</span>
+            <button class="retry-btn" id="funFactRetry">↺ Retry</button>
+          </div>
         </div>
 
+        <!-- Slack Message -->
         <div class="modal-section">
           <div class="section-label">💬 Slack Message</div>
           <div class="placeholder-body">Coming soon…</div>
@@ -758,14 +793,23 @@
     const modalOverlay = document.getElementById('modalOverlay');
     const modalClose   = document.getElementById('modalClose');
 
+    const $ = id => document.getElementById(id);
+    const hide = id => $(id).classList.add('hidden');
+    const show = id => $(id).classList.remove('hidden');
+
     function openModal(city) {
-      document.getElementById('modalCityName').textContent = city.name;
-      document.getElementById('modalLoading').classList.remove('hidden');
-      document.getElementById('modalError').classList.add('hidden');
-      document.getElementById('modalSections').classList.add('hidden');
+      $('modalCityName').textContent = city.name;
+      // Reset all cards to skeleton
+      show('weatherSkeleton');   hide('weatherContent');    hide('weatherErr');
+      show('attractionSkeleton'); hide('attractionContent'); hide('attractionErr');
+      show('funFactSkeleton');    hide('funFactContent');    hide('funFactErr');
+
       modalOverlay.classList.add('active');
       modalOverlay.setAttribute('aria-hidden', 'false');
+
+      // Fetch in parallel
       fetchWeather(city);
+      fetchCityInfo(city);
     }
 
     function closeModal() {
@@ -777,23 +821,49 @@
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lng}&current=temperature_2m,weather_code,wind_speed_10m&temperature_unit=celsius`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error('API error');
+        if (!res.ok) throw new Error();
         const data = await res.json();
         const cur  = data.current;
         const wmo  = WMO[cur.weather_code] ?? { label: 'Unknown', emoji: '🌡️' };
 
-        document.getElementById('weatherEmoji').textContent     = wmo.emoji;
-        document.getElementById('weatherTemp').textContent      = `${Math.round(cur.temperature_2m)}°C`;
-        document.getElementById('weatherCondition').textContent = wmo.label;
-        document.getElementById('weatherWind').textContent      = Math.round(cur.wind_speed_10m);
+        $('weatherEmoji').textContent     = wmo.emoji;
+        $('weatherTemp').textContent      = `${Math.round(cur.temperature_2m)}°C`;
+        $('weatherCondition').textContent = wmo.label;
+        $('weatherWind').textContent      = Math.round(cur.wind_speed_10m);
 
-        document.getElementById('modalLoading').classList.add('hidden');
-        document.getElementById('modalSections').classList.remove('hidden');
+        hide('weatherSkeleton'); show('weatherContent');
       } catch {
-        document.getElementById('modalLoading').classList.add('hidden');
-        document.getElementById('modalError').classList.remove('hidden');
+        hide('weatherSkeleton'); show('weatherErr');
       }
     }
+
+    async function fetchCityInfo(city) {
+      try {
+        const res  = await fetch(`/api/city-info?city=${encodeURIComponent(city.name)}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        $('attractionContent').textContent = data.attraction;
+        $('funFactContent').textContent    = data.funFact;
+
+        hide('attractionSkeleton'); show('attractionContent');
+        hide('funFactSkeleton');    show('funFactContent');
+      } catch {
+        hide('attractionSkeleton'); show('attractionErr');
+        hide('funFactSkeleton');    show('funFactErr');
+      }
+    }
+
+    $('attractionRetry').addEventListener('click', () => {
+      show('attractionSkeleton'); hide('attractionErr');
+      show('funFactSkeleton');    hide('funFactErr');
+      fetchCityInfo(currentCity);
+    });
+    $('funFactRetry').addEventListener('click', () => {
+      show('attractionSkeleton'); hide('attractionErr');
+      show('funFactSkeleton');    hide('funFactErr');
+      fetchCityInfo(currentCity);
+    });
 
     modalClose.addEventListener('click', closeModal);
     modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
