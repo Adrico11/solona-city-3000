@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solona City 3000</title>
+
+  <!-- Leaflet CSS (local) -->
+  <link rel="stylesheet" href="lib/leaflet.css" />
+
+  <style>
+    /* ─── Reset & base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-deep:   #050d1a;
+      --navy-mid:    #0a1628;
+      --navy-panel:  #0e1f3a;
+      --accent:      #3b82f6;
+      --accent-glow: #60a5fa;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --text-primary: #e2e8f0;
+      --text-muted:   #64748b;
+      --border:       rgba(59, 130, 246, 0.2);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--navy-deep);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ─── Star-field background ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 55% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 75% 45%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 20% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 65% 75%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1px 1px at 5%  55%, rgba(255,255,255,0.45) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Layout wrapper ─── */
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 3rem;
+      gap: 1.5rem;
+    }
+
+    /* ─── Header ─── */
+    header {
+      text-align: center;
+    }
+
+    .title {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.4));
+    }
+
+    .subtitle {
+      margin-top: 0.4rem;
+      font-size: clamp(0.85rem, 2vw, 1rem);
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Map card ─── */
+    .map-card {
+      width: 100%;
+      max-width: 900px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(59,130,246,0.08),
+        0 20px 60px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(59, 130, 246, 0.08) inset;
+      background: var(--navy-panel);
+      flex-shrink: 0;
+    }
+
+    #map {
+      width: 100%;
+      height: 500px;
+    }
+
+    /* ─── Dart button ─── */
+    .dart-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .btn-dart {
+      position: relative;
+      padding: 0.9rem 2.6rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      outline: none;
+      overflow: hidden;
+
+      /* Gradient fill */
+      background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+      color: #fff;
+
+      /* Glow */
+      box-shadow:
+        0 0 0 1px rgba(99, 102, 241, 0.4),
+        0 4px 24px rgba(59, 130, 246, 0.35),
+        0 1px 0 rgba(255,255,255,0.15) inset;
+
+      transition:
+        transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.25s ease,
+        filter 0.25s ease;
+    }
+
+    /* Shine sweep overlay */
+    .btn-dart::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -75%;
+      width: 50%;
+      height: 200%;
+      background: linear-gradient(
+        105deg,
+        transparent 40%,
+        rgba(255,255,255,0.22) 50%,
+        transparent 60%
+      );
+      transform: skewX(-20deg);
+      transition: left 0.55s ease;
+    }
+
+    .btn-dart:hover {
+      transform: translateY(-4px) scale(1.06);
+      box-shadow:
+        0 0 0 1px rgba(99, 102, 241, 0.6),
+        0 8px 40px rgba(59, 130, 246, 0.55),
+        0 0 60px rgba(99, 102, 241, 0.2),
+        0 1px 0 rgba(255,255,255,0.15) inset;
+      filter: brightness(1.12);
+    }
+
+    .btn-dart:hover::before {
+      left: 130%;
+    }
+
+    .btn-dart:active {
+      transform: translateY(-1px) scale(1.02);
+      transition-duration: 0.06s;
+    }
+
+    .btn-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ─── Leaflet dark tiles tweak ─── */
+    .leaflet-tile-pane { }
+    .leaflet-control-attribution { background: rgba(5,13,26,0.8) !important; color: #475569 !important; }
+    .leaflet-control-zoom a {
+      background: var(--navy-panel) !important;
+      color: var(--accent-glow) !important;
+      border-color: var(--border) !important;
+    }
+    .leaflet-control-zoom a:hover { background: var(--navy-mid) !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <header>
+      <h1 class="title">Solona City 3000</h1>
+      <p class="subtitle">Where will you govern today?</p>
+    </header>
+
+    <div class="map-card">
+      <div id="map"></div>
+    </div>
+
+    <div class="dart-wrapper">
+      <button class="btn-dart" id="dartBtn">Throw a dart 🎯</button>
+      <span class="btn-hint">Pick your destiny at random</span>
+    </div>
+
+  </div>
+
+  <!-- Leaflet JS (local) -->
+  <script src="lib/leaflet.js"></script>
+
+  <!-- City data -->
+  <script src="cities.js"></script>
+
+  <script>
+    // Init map centered on France
+    const map = L.map('map', {
+      center: [46.603354, 1.888334],
+      zoom: 6,
+      zoomSnap: 0.5,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
+  </script>
+</body>
+</html>
