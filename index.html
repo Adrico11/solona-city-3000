@@ -306,6 +306,108 @@
     const dartBtn = document.getElementById('dartBtn');
     const mapCard = document.querySelector('.map-card');
 
+    // ── Audio ──────────────────────────────────────────────────────────────
+    let audioCtx = null;
+    function getCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+    function noise(ctx, dur) {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      return src;
+    }
+
+    function playLaunch() {
+      const ctx = getCtx(); const t = ctx.currentTime;
+      // rising whoosh
+      const n = noise(ctx, 0.6);
+      const bpf = ctx.createBiquadFilter();
+      bpf.type = 'bandpass';
+      bpf.frequency.setValueAtTime(300, t);
+      bpf.frequency.exponentialRampToValueAtTime(3000, t + 0.5);
+      bpf.Q.value = 3;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.5, t);
+      g.gain.exponentialRampToValueAtTime(0.01, t + 0.6);
+      n.connect(bpf); bpf.connect(g); g.connect(ctx.destination);
+      n.start(t); n.stop(t + 0.6);
+    }
+
+    function playEngine(dur) {
+      const ctx = getCtx(); const t = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth'; osc.frequency.value = 60;
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 12;
+      const lfoG = ctx.createGain(); lfoG.gain.value = 4;
+      lfo.connect(lfoG); lfoG.connect(osc.frequency);
+      const lpf = ctx.createBiquadFilter();
+      lpf.type = 'lowpass'; lpf.frequency.value = 280;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.1, t + 0.15);
+      g.gain.setValueAtTime(0.1, t + dur - 0.25);
+      g.gain.linearRampToValueAtTime(0, t + dur);
+      osc.connect(lpf); lpf.connect(g); g.connect(ctx.destination);
+      lfo.start(t); osc.start(t);
+      lfo.stop(t + dur); osc.stop(t + dur);
+    }
+
+    function playBoom() {
+      const ctx = getCtx(); const t = ctx.currentTime;
+      // deep thud
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(110, t);
+      osc.frequency.exponentialRampToValueAtTime(22, t + 0.55);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(1.4, t);
+      g.gain.exponentialRampToValueAtTime(0.01, t + 0.55);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.55);
+      // noise crack
+      const n = noise(ctx, 0.35);
+      const lpf = ctx.createBiquadFilter();
+      lpf.type = 'lowpass'; lpf.frequency.value = 700;
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(1.0, t);
+      ng.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+      n.connect(lpf); lpf.connect(ng); ng.connect(ctx.destination);
+      n.start(t); n.stop(t + 0.35);
+    }
+
+    function playFanfare() {
+      const ctx = getCtx(); const t = ctx.currentTime;
+      // ascending arpeggio then chord
+      const run = [523, 659, 784, 1047, 1319, 1568];
+      run.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle'; osc.frequency.value = f;
+        const g = ctx.createGain(); const st = t + i * 0.09;
+        g.gain.setValueAtTime(0, st);
+        g.gain.linearRampToValueAtTime(0.22, st + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.01, st + 0.22);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(st); osc.stop(st + 0.25);
+      });
+      // final triumphant chord
+      [523, 659, 784, 1047].forEach(f => {
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle'; osc.frequency.value = f;
+        const g = ctx.createGain(); const st = t + run.length * 0.09 + 0.04;
+        g.gain.setValueAtTime(0, st);
+        g.gain.linearRampToValueAtTime(0.18, st + 0.06);
+        g.gain.exponentialRampToValueAtTime(0.01, st + 0.9);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(st); osc.stop(st + 1.0);
+      });
+    }
+    // ── End audio ──────────────────────────────────────────────────────────
+
     const pulseIcon = L.divIcon({
       className: '',
       html: '<div class="pulse-marker"></div>',
@@ -329,6 +431,7 @@
     }
 
     function showBoom(x, y, onDone) {
+      playBoom();
       const boom = document.createElement('div');
       boom.className = 'boom';
       boom.textContent = '💥';
@@ -394,6 +497,8 @@
         requestAnimationFrame(step);
       }
 
+      playLaunch();
+      playEngine((LOOP_MS + DIVE_MS) / 1000);
       requestAnimationFrame(step);
     }
 
@@ -415,6 +520,7 @@
       animatePlane(fromX, fromY, toX, toY, () => {
         if (currentMarker) { currentMarker.remove(); }
         currentMarker = L.marker([city.lat, city.lng], { icon: pulseIcon }).addTo(map);
+        playFanfare();
         dartBtn.disabled = false;
       });
     });
