@@ -188,20 +188,30 @@
       letter-spacing: 0.05em;
     }
 
-    /* ─── Flying dart ─── */
-    .dart-fly {
+    /* ─── Flying plane ─── */
+    .plane-fly {
       position: fixed;
-      font-size: 2rem;
+      font-size: 1.8rem;
       pointer-events: none;
       z-index: 9999;
       transform-origin: center center;
-      animation: dartFly 800ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform, left, top;
     }
 
-    @keyframes dartFly {
-      0%   { opacity: 1; transform: scale(1.2) rotate(0deg); }
-      60%  { opacity: 1; transform: scale(0.8) rotate(-20deg); }
-      100% { opacity: 0; transform: scale(0.3) rotate(-35deg); }
+    /* ─── Boom ─── */
+    .boom {
+      position: fixed;
+      font-size: 3.5rem;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%) scale(0.1);
+      animation: boomAnim 650ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes boomAnim {
+      0%   { transform: translate(-50%, -50%) scale(0.1); opacity: 1; }
+      45%  { transform: translate(-50%, -50%) scale(1.7); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
     }
 
     /* ─── Pulsing marker ─── */
@@ -303,26 +313,88 @@
       iconAnchor: [8, 24],
     });
 
-    function flyDart(fromX, fromY, toX, toY, onDone) {
-      const dart = document.createElement('div');
-      dart.className = 'dart-fly';
-      dart.textContent = '🎯';
+    function cubicBezier(p0, p1, p2, p3, t) {
+      const mt = 1 - t;
+      return {
+        x: mt*mt*mt*p0.x + 3*mt*mt*t*p1.x + 3*mt*t*t*p2.x + t*t*t*p3.x,
+        y: mt*mt*mt*p0.y + 3*mt*mt*t*p1.y + 3*mt*t*t*p2.y + t*t*t*p3.y,
+      };
+    }
 
-      const dx = toX - fromX;
-      const dy = toY - fromY;
-      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    function tangentAngle(p0, p1, p2, p3, t) {
+      const dt = Math.min(t + 0.01, 1);
+      const a = cubicBezier(p0, p1, p2, p3, t);
+      const b = cubicBezier(p0, p1, p2, p3, dt);
+      return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+    }
 
-      dart.style.left = fromX + 'px';
-      dart.style.top  = fromY + 'px';
-      dart.style.rotate = angle + 'deg';
+    function showBoom(x, y, onDone) {
+      const boom = document.createElement('div');
+      boom.className = 'boom';
+      boom.textContent = '💥';
+      boom.style.left = x + 'px';
+      boom.style.top  = y + 'px';
+      document.body.appendChild(boom);
+      setTimeout(() => { boom.remove(); onDone(); }, 650);
+    }
 
-      dart.animate([
-        { left: fromX + 'px', top: fromY + 'px', opacity: 1, scale: 1.2 },
-        { left: toX   + 'px', top: toY   + 'px', opacity: 0, scale: 0.3 },
-      ], { duration: 800, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' });
+    function animatePlane(fromX, fromY, toX, toY, onDone) {
+      const plane = document.createElement('div');
+      plane.className = 'plane-fly';
+      plane.textContent = '✈️';
+      document.body.appendChild(plane);
 
-      document.body.appendChild(dart);
-      setTimeout(() => { dart.remove(); onDone(); }, 820);
+      // Loop arc: start from button, sweep wide over the map, land near target
+      const mapRect = mapCard.getBoundingClientRect();
+      const cx = mapRect.left + mapRect.width / 2;
+      const cy = mapRect.top  + mapRect.height / 2;
+
+      // Phase 1 — wide looping arc above the map (~1000ms)
+      const loopP0 = { x: fromX, y: fromY };
+      const loopP1 = { x: cx - mapRect.width * 0.6, y: cy - 260 };
+      const loopP2 = { x: cx + mapRect.width * 0.5, y: cy - 220 };
+      const loopP3 = { x: toX + 80, y: toY - 120 };
+
+      // Phase 2 — sharp dive to target (~400ms)
+      const diveP0 = loopP3;
+      const diveP1 = { x: toX + 50, y: toY - 60 };
+      const diveP2 = { x: toX + 10, y: toY - 20 };
+      const diveP3 = { x: toX, y: toY };
+
+      const LOOP_MS = 1000;
+      const DIVE_MS = 400;
+      const TOTAL_MS = LOOP_MS + DIVE_MS;
+
+      let startTime = null;
+
+      function step(ts) {
+        if (!startTime) startTime = ts;
+        const elapsed = ts - startTime;
+
+        if (elapsed >= TOTAL_MS) {
+          plane.remove();
+          showBoom(toX, toY, onDone);
+          return;
+        }
+
+        let pos, angle;
+        if (elapsed < LOOP_MS) {
+          const t = elapsed / LOOP_MS;
+          pos   = cubicBezier(loopP0, loopP1, loopP2, loopP3, t);
+          angle = tangentAngle(loopP0, loopP1, loopP2, loopP3, t);
+        } else {
+          const t = (elapsed - LOOP_MS) / DIVE_MS;
+          pos   = cubicBezier(diveP0, diveP1, diveP2, diveP3, t);
+          angle = tangentAngle(diveP0, diveP1, diveP2, diveP3, t);
+        }
+
+        plane.style.left      = (pos.x - 14) + 'px';
+        plane.style.top       = (pos.y - 14) + 'px';
+        plane.style.transform = `rotate(${angle}deg)`;
+        requestAnimationFrame(step);
+      }
+
+      requestAnimationFrame(step);
     }
 
     dartBtn.addEventListener('click', () => {
@@ -331,18 +403,16 @@
       const city = CITIES[Math.floor(Math.random() * CITIES.length)];
       currentCity = city;
 
-      // Button center in viewport coords
       const btnRect = dartBtn.getBoundingClientRect();
       const fromX = btnRect.left + btnRect.width / 2;
       const fromY = btnRect.top  + btnRect.height / 2;
 
-      // City position in viewport coords
       const mapRect = mapCard.getBoundingClientRect();
       const cityPoint = map.latLngToContainerPoint([city.lat, city.lng]);
       const toX = mapRect.left + cityPoint.x;
       const toY = mapRect.top  + cityPoint.y;
 
-      flyDart(fromX, fromY, toX, toY, () => {
+      animatePlane(fromX, fromY, toX, toY, () => {
         if (currentMarker) { currentMarker.remove(); }
         currentMarker = L.marker([city.lat, city.lng], { icon: pulseIcon }).addTo(map);
         dartBtn.disabled = false;
